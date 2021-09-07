@@ -1,0 +1,7 @@
+teamName: armada-storage
+teamLeadEmail: akgunjal@in.ibm.com
+secretName: PROD_GLOBAL_STORAGE_IKS_PIPELINE_IAM_APIKEY_20210428
+purposeOfSecret: |
+  IKS PIPELINE API key used for all production environments
+emailOfPersonThatGenerated: epradeepk@in.ibm.com
+

@@ -1,0 +1,7 @@
+teamName: armada-storage
+teamLeadEmail: akgunjal@in.ibm.com
+secretName: ALL_GLOBAL_STORAGE_CONTSTO2_GHE_TOKEN_20210407
+purposeOfSecret: |
+  Contoso2 account GHE token used to pull and push to github repositories for all environments
+emailOfPersonThatGenerated: sukesh.prabhakar@in.ibm.com
+

@@ -1,0 +1,220 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: managed-storage-validation-webhooks-list
+  namespace: openshift-odf-validation-webhook
+  annotations:
+    version: (( grab $TRAVIS_COMMIT || "dev" ))
+    razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+    razee.io/build-url: (( grab $BUILD_URL ))
+items:
+    - apiVersion: v1
+      kind: Namespace
+      metadata:
+        labels:
+          openshift.io/cluster-monitoring: "true"
+        name: openshift-odf-validation-webhook
+      spec: {}
+      status: {}
+    - apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: managed-storage-validation-webhooks
+        namespace: openshift-odf-validation-webhook
+        annotations:
+          version: (( grab $TRAVIS_COMMIT || "dev" ))
+          razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+          razee.io/build-url: (( grab $BUILD_URL ))
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: managed-storage-validation-webhooks
+        annotations:
+          version: (( grab $TRAVIS_COMMIT || "dev" ))
+          razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+          razee.io/build-url: (( grab $BUILD_URL ))
+      rules:
+      - apiGroups:
+        - operators.coreos.com
+        resources:
+        - subscriptions
+        verbs:
+        - list
+        - get
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: managed-storage-validation-webhooks
+        annotations:
+          version: (( grab $TRAVIS_COMMIT || "dev" ))
+          razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+          razee.io/build-url: (( grab $BUILD_URL ))
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: managed-storage-validation-webhooks
+      subjects:
+      - kind: ServiceAccount
+        name: managed-storage-validation-webhooks
+        namespace: openshift-odf-validation-webhook
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        annotations:
+          service.beta.openshift.io/inject-cabundle: "true"
+          version: (( grab $TRAVIS_COMMIT || "dev" ))
+          razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+          razee.io/build-url: (( grab $BUILD_URL ))
+        name: managed-storage-validation-webhooks-cert
+        namespace: openshift-odf-validation-webhook
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        annotations:
+          service.beta.openshift.io/serving-cert-secret-name: managed-storage-validation-webhooks-cert
+          version: (( grab $TRAVIS_COMMIT || "dev" ))
+          razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+          razee.io/build-url: (( grab $BUILD_URL ))
+        labels:
+          name: managed-storage-validation-webhooks
+        name: managed-storage-validation-webhooks
+        namespace: openshift-odf-validation-webhook
+      spec:
+        ports:
+        - name: https
+          port: 443
+          protocol: TCP
+          targetPort: 5000
+        selector:
+          app: managed-storage-validation-webhooks
+        type: ClusterIP
+      status:
+        loadBalancer: {}
+    - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:
+          app: managed-storage-validation-webhooks
+        name: managed-storage-validation-webhooks
+        namespace: openshift-odf-validation-webhook
+        annotations:
+          version: (( grab $TRAVIS_COMMIT || "dev" ))
+          razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+          razee.io/build-url: (( grab $BUILD_URL ))
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: managed-storage-validation-webhooks
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 0
+            maxUnavailable: 1
+        template:
+          metadata:
+            labels:
+              app: managed-storage-validation-webhooks
+          spec:
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: "app"
+                          operator: In
+                          values:
+                            - managed-storage-validation-webhooks
+                    topologyKey: "kubernetes.io/hostname"
+                  weight: 100
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - managed-storage-validation-webhooks
+                    topologyKey: topology.kubernetes.io/zone
+                  weight: 100
+            containers:
+            - command:
+              - webhooks
+              - -tlskey
+              - /service-certs/tls.key
+              - -tlscert
+              - /service-certs/tls.crt
+              - -cacert
+              - /service-ca/service-ca.crt
+              image: (( concat "icr.io/obs/managed-storage-validation-webhooks:" metadata.annotations.version ))
+              imagePullPolicy: Always
+              name: managed-storage-validation-webhooks
+              securityContext:
+                privileged: false
+                allowPrivilegeEscalation: false
+              ports:
+              - containerPort: 5000
+              livenessProbe:
+                exec:
+                  command:
+                  - ls
+                  - /service-certs
+                initialDelaySeconds: 30
+                periodSeconds: 60
+                timeoutSeconds: 5
+                failureThreshold: 3
+              resources:
+                limits:
+                  cpu: "3"
+                  memory: 50Mi
+              requests:
+                cpu: "0.5"
+                memory: 20Mi
+              volumeMounts:
+              - mountPath: /service-certs
+                name: service-certs
+                readOnly: true
+              - mountPath: /service-ca
+                name: service-ca
+                readOnly: true
+            restartPolicy: Always
+            serviceAccountName: managed-storage-validation-webhooks
+            volumes:
+            - name: service-certs
+              secret:
+                secretName: managed-storage-validation-webhooks-cert
+            - configMap:
+                name: managed-storage-validation-webhooks-cert
+              name: service-ca
+    - apiVersion: admissionregistration.k8s.io/v1
+      kind: ValidatingWebhookConfiguration
+      metadata:
+        annotations:
+          service.beta.openshift.io/inject-cabundle: "true"
+          version: (( grab $TRAVIS_COMMIT || "dev" ))
+          razee.io/source-url: (( grab $REPO_SOURCE_URL ))
+          razee.io/build-url: (( grab $BUILD_URL ))
+        name: managed-storage-validation-webhooks
+      webhooks:
+      - admissionReviewVersions:
+        - v1
+        clientConfig:
+          service:
+            name: managed-storage-validation-webhooks
+            namespace: openshift-odf-validation-webhook
+            path: /validate
+        failurePolicy: Ignore
+        matchPolicy: Equivalent
+        name: validate.managed.openshift.io
+        rules:
+        - apiGroups:
+          - operators.coreos.com
+          apiVersions:
+          - '*'
+          operations:
+          - CREATE
+          resources:
+          - subscriptions
+          scope: Namespaced
+        sideEffects: None
+        timeoutSeconds: 2
