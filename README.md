@@ -1,2 +1,3 @@
-# managed-storage-validation-webhooks
-Component to block ODF and other pre-validation for storage
+# ibm-managed-validation-webhooks
+Component to block ODF deploy from OperatorHub and allow only from IBM add-on
+
